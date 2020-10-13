@@ -8,10 +8,10 @@ I created a program that generates a biography-like texts based on the book [My 
 
 ## Example Result
 ```
-Gilbert is a Denver-based Electric Motor who works with Coventry Health Care to help Sorensen buy their drudgery.
-He has given one of the most preferences in South and has required the heat by 20% for the right.
-Also, He can speak eight languages including English.
-Gilbert continues to pay annual shops.
+Cooper is a Pomona-based Computer Hardware Engineer who works with Dollar General to help Gutenberg oppose their model c.
+He has issued one of the cheapest ebooks in Highland Park and has related the behalf by 20% for beaubien streets.
+Also, He can speak 10 languages including English.
+Cooper continues to overcome present evils.
 ```
 
 ## Setup
