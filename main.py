@@ -1,70 +1,39 @@
-def getFilenameFromSysArg():
-    import sys
-    if len(sys.argv) == 1:
-        print("Error: Please pass the filename or URL as an argument.")
-        exit()
-    else:
-        return sys.argv[1]
-
-def getTextFromFilename(filename):
-    from urllib.request import urlopen
-    import os.path
-    extension = os.path.splitext(filename)[1]
-    if extension != ".txt":
-        print("Error: Please pass the .txt file.")
-        exit()
-    try:
-        file = urlopen(filename)
-        return file.read().decode("utf-8")
-    except ValueError:
-        try:
-            file = open(filename)
-            return file.read()
-        except:
-            print("Error: Could not find the file '" + filename +"'")
-            exit()
-
-# get text from filename argument
-filename = getFilenameFromSysArg()
-text = getTextFromFilename(filename)
-
-# parse text with spacy
+import random
+from urllib.request import urlopen
 import spacy
+from collections import Counter
+import tracery
+from tracery.modifiers import base_english
+
+citiesURL = "https://gist.githubusercontent.com/norcal82/4accc0d968444859b408/raw/d295d94608be043a4774087d6cb19caf3a1f27a2/city_names.txt"
+occupationsURL = "https://gist.githubusercontent.com/wsc/1083459/raw/d8d0aa8737a36912e6c119a172c8367276b76260/gistfile1.txt"
+companiesURL = "https://raw.githubusercontent.com/abilitize/Helpful-Lists/master/Fortune%20500.txt"
+myLifeAndWorkURL = "http://www.gutenberg.org/cache/epub/7213/pg7213.txt"
+
+citiesList = urlopen(citiesURL).read().decode("utf-8").split("\n")[2:]
+occupationsList = urlopen(occupationsURL).read().decode("utf-8").split("\n")
+companiesList = urlopen(companiesURL).read().decode("utf-8").split("\n")
+myLifeAndWorkText = urlopen(myLifeAndWorkURL).read().decode("utf-8").replace("\n", " ")
+
+# create a new spaCy object with English model
 nlp = spacy.load('en_core_web_md')
-doc = nlp(text)
 
-
-# utility functions
-def numDimensions():
-    return nlp.meta["vectors"]["width"]
-
-def vec(s):
-    return nlp.vocab[s].vector
-
-# import numpy for vector math
-import numpy as np
-from numpy.linalg import norm
-
-def distance(a, b):
-    return norm(a - b)
-
-def meanv(vecs):
-    total = np.sum(vecs, axis = 0)
-    return total / len(vecs)
-
-# import simpleneighbors
-from simpleneighbors import SimpleNeighbors
-
+# parse the text
+doc = nlp(myLifeAndWorkText)
 
 # extract text units
 sentences = list(doc.sents)
-words = [w for w in list(doc)]
+words = [w for w in list(doc) if w.is_alpha]
 nounChunks = list(doc.noun_chunks)
 entities = list(doc.ents)
 
-# parts of speech
-def getWordsByPos(pos, words=words):
+# used for finding the most common words
+wordCount = Counter([w.text for w in words])
+
+
+def getWordsByPos(pos):
     return [w for w in words if w.pos_ == pos]
+
 
 nouns = getWordsByPos("NOUN")  # robot
 properNouns = getWordsByPos("PROPN")  # Mt. Everest
@@ -80,28 +49,28 @@ numbers = getWordsByPos("NUM")  # number
 xs = getWordsByPos("X")  # email, foreign word, unknown
 
 
-# tag
-def getWordsByTag(tag, words=words):
-    return [w for w in words if w.tag_ == tag]
-
-
 # nouns
 def getNounsByTag(tag):
-    return getWordsByTag(tag, nouns)
+    return [n.text for n in nouns if n.tag_ == tag]
+
 
 nounsSingular = getNounsByTag("NN")  # robot
 nounsPlural = getNounsByTag("NNS")  # robots
 
+
 # proper nouns
 def getProperNounsByTag(tag):
-    return getWordsByTag(tag, properNouns)
+    return [p.text for p in properNouns if p.tag_ == tag]
+
 
 properNounsSingular = getProperNounsByTag("NNP")  # Korean
 properNounsPlural = getProperNounsByTag("NNPS")  # Koreans
 
+
 # verbs
 def getVerbsByTag(tag):
-    return getWordsByTag(tag, verbs)
+    return [v.text for v in verbs if v.tag_ == tag]
+
 
 verbsBase = getVerbsByTag("VB")  # eat
 verbsPast = getVerbsByTag("VBD")  # ate
@@ -111,35 +80,43 @@ verbsPresentNon3rd = getVerbsByTag("VBP")  # eat
 verbsPresent3rd = getVerbsByTag("VBZ")  # eats
 verbsModal = getVerbsByTag("MD")  # can, could, should, might
 
+
 # adjectives
 def getAdjectivesByTag(tag):
-    return getWordsByTag(tag, adjectives)
+    return [a.text for a in adjectives if a.tag_ == tag]
+
 
 adjectivesAffix = getAdjectivesByTag("AFX")  # unhappy, useless
 adjectivesAdjective = getAdjectivesByTag("JJ")  # long
 adjectivesComparative = getAdjectivesByTag("JJR")  # longer
 adjectivesSuperlative = getAdjectivesByTag("JJS")  # the longest
 
+
 # adverbs
 def getAdVerbsByTag(tag):
-    return getWordsByTag(tag, adverbs)
+    return [a.text for a in adverbs if a.tag_ == tag]
+
 
 adverbsAdverb = getAdVerbsByTag("RB")  # slowly
 adverbsComparative = getAdVerbsByTag("RBR")  # more slowly
 adverbsSuperlative = getAdVerbsByTag("RBS")  # most slowly
 adverbsWh = getAdVerbsByTag("WRB")  # when, where, why, how
 
+
 # pronouns
 def getPronounsByTag(tag):
-    return getWordsByTag(tag, pronouns)
+    return [p.text for p in pronouns if p.tag_ == tag]
+
 
 pronounsThere = getPronounsByTag("EX")  # there
 pronounsPersonal = getPronounsByTag("PRP")  # I, me, my
 pronounsWh = getPronounsByTag("WP")  # who, who, whose
 
+
 # entities
-def getEntitiesByLabel(label, entities=entities):
-    return [e for e in entities if e.label_ == label]
+def getEntitiesByLabel(label):
+    return [e.text for e in entities if e.label_ == label]
+
 
 people = getEntitiesByLabel("PERSON")
 locations = getEntitiesByLabel("LOC")
@@ -156,49 +133,57 @@ quantity = getEntitiesByLabel("QUANTITY")  # miles, pounds
 ordinal = getEntitiesByLabel("ORDINAL")  # first, second
 cardinal = getEntitiesByLabel("CARDINAL")  # one, two
 
+name = random.choice(people)
+pronoun = random.choice(["he", "she"])
 
-def getLookUp(words):
-    lookup = SimpleNeighbors(numDimensions())
-    for word in words:
-        # .corpus of the lookup lets us determine if the word has already been added
-        if word.text.lower() not in lookup.corpus:
-            lookup.add_one(word.text.lower(), word.vector)
-    lookup.build()
-    return lookup
+rules = {
+    "origin1":
+        [
+            "#name.capitalize# is #city.capitalize.a#-based #profession# who works with #company.capitalize# to help #customer# #verbPresent# their #nounObject#."
+        ],
+    "origin2":
+        [
+            "#pronoun.capitalize# has #verbsPastParticiple# one of the #adjectivesSuperlative# #nounsPlural# in #location# and #achievement#",
+            "#pronoun.capitalize# has #verbsPastParticiple# the #ordinal# #adjectivesSuperlative# #nounsSingular# in #location# and #achievement#"
+        ],
+    "origin3":
+        [
+            "Also, #pronoun.capitalize# can speak #cardinal# languages including #language#."
+        ],
+    "origin4":
+        [
+            "#name.capitalize# continues to #verbPresent# #adjectivesAdjective# #nounsPlural#."
+        ],
+    "achievement": "has #verbsPastParticiple# the #nounsSingular# by #percent# for #nounChunk#.",
+    "name": name,
+    "pronoun": pronoun,
+    "city": citiesList,
+    "location": locations,
+    "profession": occupationsList,
+    "company": companiesList,
+    "customer": people,
+    "verbPresent": [i.lower() for i in verbsBase],
+    "nounObject": [i.lower() for i in product],
+    "verbsPresentParticiple": [i.lower() for i in verbsPresentParticiple],
+    "verbsPastParticiple": [i.lower() for i in verbsPastParticiple],
+    "adjectivesSuperlative": [i.lower() for i in adjectivesSuperlative],
+    "nounsSingular": [i.lower() for i in nounsSingular],
+    "nounsPlural": [i.lower() for i in nounsPlural],
+    "nounChunk": [i.text.lower() for i in nounChunks],
+    "ordinal": [i for i in ordinal if not " " in i],
+    "cardinal": [i for i in cardinal if i.lower() != "one" and not " " in i],
+    "language": language,
+    "percent": [i for i in percent if not " " in i],
+    "adverbsAdverb": adverbsAdverb,
+    "adjectivesAdjective": adjectivesAdjective,
+}
 
-# nouns_lookup = getLookUp(words)
+grammar = tracery.Grammar(rules)
+grammar.add_modifiers(base_english)
 
-# print(nouns_lookup.nearest(vec("happy")))
-
-# words = "Hello I am good"
-
-
-lookups = dict()
-for word in words:
-    if word.pos_ not in lookups:
-        lookups[word.pos_] = getWordsByPos(word.pos_)
-    if word.tag_ not in lookups:
-        lookups[word.tag_] = getWordsByTag(word.tag_)
-for entity in entities:
-    if entity.label_ not in lookups:
-        lookups[entity.label_] = getEntitiesByLabel(entity.label_)
-
-
-for key, words in lookups.items():
-  lookups[key] = getLookUp(words)
-
-output = []
-
-for word in words:
-    nearest = lookups[word.pos_].nearest(word.vector)
-    if len(nearest) > 1:
-        new_word = nearest[1]
-        output.append(new_word.text)
-    else:
-        output.append(word.text)
-    output.append(word.whitespace_)
-print(''.join(output))
-
-
-
-
+numBiographies = 1  # for testing
+numOrigins = 4
+for i in range(numBiographies):
+    print("\n")
+    for j in range(numOrigins):
+        print(grammar.flatten(f"#origin{j + 1}#"))

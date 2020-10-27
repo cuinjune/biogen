@@ -1,2 +1,2 @@
+tracery
 spacy
-simpleneighbors
